@@ -2,6 +2,6 @@ export interface MarkerType {
   id: number;
   latitude: number;
   longitude: number;
-  titulo?: string;
+  titulo: string;
   descricao?: string;
 }
