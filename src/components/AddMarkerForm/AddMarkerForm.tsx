@@ -5,8 +5,12 @@ import { MarkerType } from '../../types/marker';
 import styles from './AddMarkerForm.module.css';
 
 const AddMarkerForm: React.FC = () => {
-  const { addMarker, replaceMarker } = useMarkerStore();
-  const { marker, setField, reset } = useMarkerFormStore();
+  const addMarker = useMarkerStore((state) => state.addMarker);
+  const replaceMarker = useMarkerStore((state) => state.replaceMarker);
+
+  const marker = useMarkerFormStore((state) => state.marker);
+  const setField = useMarkerFormStore((state) => state.setField);
+  const reset = useMarkerFormStore((state) => state.reset);
   
   // Função para lidar com as mudanças nos campos do formulário
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {

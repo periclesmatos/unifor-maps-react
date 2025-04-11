@@ -4,4 +4,5 @@ export interface MarkerType {
   longitude: number;
   titulo: string;
   descricao?: string;
+  distanciaKm?: number;
 }
