@@ -1,18 +1,15 @@
-import { useEffect, useState, useRef } from 'react';
 import {
   GoogleMap,
-  InfoWindow,
   LoadScript,
   Marker,
-  Libraries
+  Libraries,
 } from '@react-google-maps/api';
-
-import { getMarkers, updateMarker } from '../../services/markerService';
-import { useMarkerStore } from '../../store/markerStore';
-import { useMarkerFormStore } from '../../store/markerFormStore';
-import { MarkerType } from '../../types/marker';
-import { setMarkerDistances } from '../../utils/mapUtils';
+import { useMarkerHandlers } from '../../hooks/useMarkerHandlers';
+import MarkerInfoWindow from '../../components/MarkerInfoWindow/MarkerInforWindow';
 import styles from './InteractiveMap.module.css';
+import { useMapStore } from '../../store/mapStore';
+import { useEffect } from 'react';
+import { setMarkerDistances } from '../../utils/mapUtils';
 
 // Definindo o centro do mapa com as coordenadas da Unifor.
 const center = {
@@ -23,33 +20,19 @@ const center = {
 const libraries: Libraries = ['geometry'];
 
 const InteractiveMap: React.FC = () => {
-  const markers = useMarkerStore((state) => state.markers);
-  const setMarkers = useMarkerStore((state) => state.setMarkers);
-  const replaceMarker = useMarkerStore((state) => state.replaceMarker);
-  const setField = useMarkerFormStore((state) => state.setField);
+  const { setMap, setUserLocation, userLocation } = useMapStore();
+  const {
+    markers,
+    selectedMarker,
+    setSelectedMarker,
+    handleMarkerDragEnd,
+    handleMapClick,
+  } = useMarkerHandlers();
 
-  const [selectedMarker, setSelectedMarker] = useState<MarkerType | null>(null); // Estado para armazenar o marcador selecionado.
-  const [userLocation, setUserLocation] = useState<google.maps.LatLngLiteral | null>(null); // Estado para armazenar a localização do usuário.
-  const mapRef = useRef<google.maps.Map | null>(null); // Referência para o mapa.
-
-  // Função para lidar com o carregamento do mapa.
   const handleMapLoad = (map: google.maps.Map) => {
-    mapRef.current = map; // agora temos acesso direto ao mapa
+    setMap(map);
   };
 
-  // Buscar marcadores da API quando o componente for montado e atualizar o store.
-  // Isso garante que os marcadores sejam carregados assim que o componente for exibido.
-  useEffect(() => {
-    const fetchMarkers = async () => {
-      const data = await getMarkers();
-      setMarkers(data);
-    };
-
-    fetchMarkers();
-  }, [setMarkers]);
-
-  // Obter a localização do usuário quando o componente for montado.
-  // Isso garante que a localização do usuário seja obtida assim que o componente for exibido.
   useEffect(() => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
@@ -60,60 +43,18 @@ const InteractiveMap: React.FC = () => {
           };
           setUserLocation(current); // Atualiza a localização do usuário no estado.
           setMarkerDistances(current.lat, current.lng); // Atualiza as distâncias dos marcadores em relação à localização do usuário.
-          // mapRef.current?.setCenter(current); // Centraliza o mapa na localização do usuário.
         },
         (error) => {
           console.error('Erro ao obter localização do usuário:', error);
         },
         {
-          enableHighAccuracy: false, // Habilita alta precisão na localização.
-          maximumAge: 0, // Não usa localização armazenada em cache.
+          enableHighAccuracy: true, // Usa alta precisão para obter a localização.
+          maximumAge: 0, // Não usa localização em cache.
           timeout: 5000, // Define um tempo limite de 5 segundos para obter a localização.
         }
       );
     }
-  }, []);
-
-  // Atualizar o marcador no store e no banco de dados quando o usuário clicar em um marcador e arrastalo.
-  const handleMarkerDragEnd = async (
-    e: google.maps.MapMouseEvent,
-    marker: MarkerType
-  ) => {
-    const lat = e.latLng?.lat();
-    const lng = e.latLng?.lng();
-
-    if (lat !== undefined && lng !== undefined) {
-      // Atualiza a latitude e longitude do marcador no store.
-      replaceMarker(marker.id, { latitude: lat, longitude: lng });
-
-      try {
-        // Atualiza a latitude e longitude do marcador no banco de dados.
-        await updateMarker({
-          id: marker.id,
-          titulo: marker.titulo,
-          descricao: marker.descricao,
-          latitude: lat,
-          longitude: lng,
-        });
-      } catch (error) {
-        console.error('Erro ao atualizar marcador no banco:', error);
-      }
-    }
-  };
-
-  // Função para lidar com o clique no mapa e definir a latitude e longitude no formulário.
-  const handleMapClick = (e: google.maps.MapMouseEvent) => {
-    if (e.latLng) {
-      const lat = e.latLng.lat();
-      const lng = e.latLng.lng();
-
-      // Quando o usuário clicar no mapa, a latitude e longitude do ponto clicado serão definidas no store.
-      if (lat !== undefined && lng !== undefined) {
-        setField('latitude', lat);
-        setField('longitude', lng);
-      }
-    }
-  };
+  },[setUserLocation]);
 
   return (
     <LoadScript
@@ -130,7 +71,14 @@ const InteractiveMap: React.FC = () => {
         {userLocation && (
           <Marker
             position={userLocation}
-            icon='http://maps.google.com/mapfiles/ms/icons/blue-dot.png'
+            icon={{
+              path: google.maps.SymbolPath.CIRCLE, // Usando o ícone de círculo (bolinha)
+              fillColor: 'blue', // Cor de preenchimento
+              fillOpacity: 1, // Opacidade do preenchimento
+              strokeColor: 'white', // Cor da borda
+              strokeWeight: 2, // Peso da borda
+              scale: 6, // Tamanho do marcador (ajustável)
+            }}
             title='Sua localização'
           />
         )}
@@ -145,18 +93,10 @@ const InteractiveMap: React.FC = () => {
           />
         ))}
         {selectedMarker && (
-          <InfoWindow
-            position={{
-              lat: selectedMarker.latitude,
-              lng: selectedMarker.longitude,
-            }}
-            onCloseClick={() => setSelectedMarker(null)}
-          >
-            <div className={styles.infoWindow}>
-              <h3>{selectedMarker.titulo}</h3>
-              <p>{selectedMarker.descricao}</p>
-            </div>
-          </InfoWindow>
+          <MarkerInfoWindow
+            marker={selectedMarker}
+            onClose={() => setSelectedMarker(null)}
+          />
         )}
       </GoogleMap>
     </LoadScript>

@@ -1,10 +1,12 @@
 import { deleteMarker } from '../../services/markerService';
 import { useMarkerStore } from '../../store/markerStore';
+import { useMapStore } from '../../store/mapStore';
 import styles from './MarkerList.module.css';
 
 const MarkerList = () => {
   const markers = useMarkerStore((state) => state.markers);
   const removeMarker = useMarkerStore((state) => state.removeMarker);
+  const centerMapOnMarker = useMapStore((state) => state.centerMapOnMarker);
 
   // Função para lidar com a exclusão de um marcador
   const handleDelete = async (id: number) => {
@@ -30,7 +32,10 @@ const MarkerList = () => {
               </>
             )}
             <div className='marker-buttons'>
-              <button className='btn-ver'>Ver no Mapa</button>
+              <button 
+                className='btn-ver'
+                onClick={() => centerMapOnMarker(marker)}
+              >Ver no Mapa</button>
               <button
                 className='btn-excluir'
                 onClick={() => handleDelete(marker.id)}

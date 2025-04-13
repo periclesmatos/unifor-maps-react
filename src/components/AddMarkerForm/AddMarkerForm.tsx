@@ -1,5 +1,5 @@
 import { useMarkerStore } from '../../store/markerStore';
-import { useMarkerFormStore } from '../../store/markerFormStore';
+import { useMarkerFormStore } from '../../store/FormStore';
 import { postMarker } from '../../services/markerService';
 import { MarkerType } from '../../types/marker';
 import styles from './AddMarkerForm.module.css';
@@ -11,7 +11,7 @@ const AddMarkerForm: React.FC = () => {
   const marker = useMarkerFormStore((state) => state.marker);
   const setField = useMarkerFormStore((state) => state.setField);
   const reset = useMarkerFormStore((state) => state.reset);
-  
+
   // Função para lidar com as mudanças nos campos do formulário
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
@@ -104,7 +104,9 @@ const AddMarkerForm: React.FC = () => {
           className={styles.input}
         />
 
-        <button type='submit' className={styles.button_addMarker}>Adicionar Marcador</button>
+        <button type='submit' className={styles.button_addMarker}>
+          Adicionar Marcador
+        </button>
       </form>
     </aside>
   );
